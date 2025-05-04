@@ -1,0 +1,131 @@
+/* Fondo general */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #8bb6f79d;
+  margin: 20px;
+  color: #333;
+}
+
+/* Botones cliente */
+#clientButtons {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+#clientButtons button {
+  margin: 0 8px;
+  padding: 10px 20px;
+  background-color: #0078d7;
+  border: none;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#clientButtons button:hover {
+  background-color: #005fa3;
+}
+
+#clientTitle {
+  font-size: 1.8em;
+  margin-bottom: 10px;
+  text-align: center;
+  color: #0078d7;
+}
+
+/* Tabla */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 40px;
+  background: white;
+  box-shadow: 0 0 10px rgb(0, 0, 0);
+}
+
+caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: bold;
+  font-size: 1.2em;
+  background-color: #f0f0f0;
+  padding: 10px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+thead {
+  background-color: #0078d7;
+  color: white;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+tr:hover {
+  background-color: #5dc3ff;
+}
+
+tr:last-child {
+  border-top: 2px solid #ccc;
+  background-color: #47a1fa;
+  font-weight: bold;
+}
+
+/* Animaciones de entrada/salida */
+.table-container {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  display: none;
+}
+
+.table-container.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+/* From Uiverse.io by omar49511 */ 
+.container-btn-file {
+  display: flex;
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  background-color: #307750;
+  color: #fff;
+  border-style: none;
+  padding: 1em 2em;
+  border-radius: 0.5em;
+  overflow: hidden;
+  z-index: 1;
+  box-shadow: 4px 8px 10px -3px rgba(0, 0, 0, 0.356);
+  transition: all 250ms;
+}
+.container-btn-file input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.container-btn-file > svg {
+  margin-right: 1em;
+}
+.container-btn-file::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 0;
+  border-radius: 0.5em;
+  background-color: #469b61;
+  z-index: -1;
+  transition: all 350ms;
+}
+.container-btn-file:hover::before {
+  width: 100%;
+}
