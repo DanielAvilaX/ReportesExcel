@@ -1,9 +1,12 @@
 /* Fondo general */
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background: #8bb6f79d;
-  margin: 20px;
-  color: #333;
+  background-image: url('fondo.jpg'); /* Ajusta la ruta según tu estructura */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  margin: 0;
+  font-family: sans-serif;
 }
 
 /* Botones cliente */
@@ -128,4 +131,28 @@ tr:last-child {
 }
 .container-btn-file:hover::before {
   width: 100%;
+}
+#chartCanvas {
+  display: block;
+  background: #fff;
+  box-shadow: 0 0 10px #00000052;
+  border-radius: 10px;
+  padding: 20px;
+}
+.table-container.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+.graph-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.graph-buttons button {
+  display: inline-block;
+  margin: 0;
 }

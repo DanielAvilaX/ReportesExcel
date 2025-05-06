@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reporte de Clientes</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <h1>Reporte de Clientes desde Excel</h1>
   <button class="container-btn-file">
@@ -34,10 +36,63 @@
   </button>
 
   <div id="clientButtons" class="buttons"></div>
+  <h2 id="selectedClientName" style="text-align: center; margin-top: 20px;"></h2>
+  <label class="container-btn-file" id="btnExportarExcel" style="cursor: pointer; opacity: 0.5; pointer-events: none;">
+    <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+      <path d="M5 20h14v-2H5v2zm7-18L5.33 9h4.34v6h4.66v-6h4.34L12 2z"/>
+    </svg>
+    <span style="margin-left: 8px;">Exportar Excel</span>
+  </label>
+    </button>  
   <div id="clientTitle"></div>
   <div id="tablesContainer"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <canvas id="chartCanvas" style="max-width: 1000px; margin: 40px auto; display: none;"></canvas>
+  <div id="chartModal" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+">
+  <div style="
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    position: relative;
+    max-width: 90%;
+    width: 800px;
+    max-height: 90%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  ">
+    <button onclick="closeModal()" style="
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+      align-self: flex-end;
+      margin-bottom: 10px;
+    ">Cerrar</button>
+    <div style="width: 100%; height: 400px;">
+      <canvas id="modalChartCanvas" style="width:100%; height:100%;"></canvas>
+    </div>
+  </div>
+</div>
+
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
+
 </html>
