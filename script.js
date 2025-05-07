@@ -1,14 +1,10 @@
 document.getElementById("excelFile").addEventListener("change", handleFile, false);
 
 let clientsData = {};
-let chartInstance = null;
-let headers = [];
+let headersLocal = [];
 let monthIndexes = [];
-let headersGlobal = [];
-let monthIndexesGlobal = [];
-
-
-
+let localHeadersPorCliente = {};
+let localMonthIndexesPorCliente = {};
 
 function handleFile(event) {
   const file = event.target.files[0];
@@ -18,52 +14,28 @@ function handleFile(event) {
     const data = new Uint8Array(e.target.result);
     const workbook = XLSX.read(data, { type: "array" });
 
-
     clientsData = {};
 
     workbook.SheetNames.forEach(sheetName => {
       const sheet = workbook.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      const headers = json[0];
-      // Detectar columnas de meses válidos
-      const rawMonthVariants = [
-        // Español - completo y abreviado
-        "enero", "ene",
-        "febrero", "feb",
-        "marzo", "mar",
-        "abril", "abr",
-        "mayo", "may",
-        "junio", "jun",
-        "julio", "jul",
-        "agosto", "ago",
-        "septiembre", "sep", "set", // setiembre común en LATAM
-        "octubre", "oct",
-        "noviembre", "nov",
-        "diciembre", "dic",
+      const localHeaders = json[0];
 
-        // Inglés - completo y abreviado
-        "january", "jan",
-        "february", "feb",
-        "march", "mar",
-        "april", "apr",
-        "may", // igual en ambos idiomas
-        "june", "jun",
-        "july", "jul",
-        "august", "aug",
-        "september", "sep",
-        "october", "oct",
-        "november", "nov",
-        "december", "dec"
+      const rawMonthVariants = [
+        "enero", "ene", "febrero", "feb", "marzo", "mar", "abril", "abr", "mayo", "may",
+        "junio", "jun", "julio", "jul", "agosto", "ago", "septiembre", "sep", "set",
+        "octubre", "oct", "noviembre", "nov", "diciembre", "dic",
+        "january", "jan", "february", "feb", "march", "mar", "april", "apr",
+        "may", "june", "jun", "july", "jul", "august", "aug", "september", "sep",
+        "october", "oct", "november", "nov", "december", "dec"
       ];
 
-      // Preparamos la lista final de coincidencias en minúsculas y sin tildes
       const monthNames = rawMonthVariants.map(m =>
         m.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
       );
 
-
-      const monthIndexes = headers
+      const localMonthIndexes = localHeaders
         .map((h, i) => {
           const normalized = h?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
           return { h: normalized, i };
@@ -71,32 +43,26 @@ function handleFile(event) {
         .filter(({ h }) => monthNames.includes(h))
         .map(({ i }) => i);
 
-      headersGlobal = headers;
-      monthIndexesGlobal = monthIndexes;
+      localHeadersPorCliente[sheetName] = localHeaders;
+      localMonthIndexesPorCliente[sheetName] = localMonthIndexes;
 
-
-
-      const inventoryIndex = headers.findIndex(h => h.toString().toLowerCase() === "inventario");
-      const ventaIndex = headers.findIndex(h => h.toString().toLowerCase() === "venta");
+      const inventoryIndex = localHeaders.findIndex(h => h.toString().toLowerCase() === "inventario");
+      const ventaIndex = localHeaders.findIndex(h => h.toString().toLowerCase() === "venta");
 
       const rows = json.slice(1).filter(row => row.length > 0);
       let currentCategory = null;
       const categories = {};
 
       rows.forEach(row => {
-
         const nombreProducto = row[0];
         if (!nombreProducto || nombreProducto.trim() === "") return;
 
-        if (!row[inventoryIndex] && !row[ventaIndex] && monthIndexes.every(i => !row[i])) {
-          // Es una categoría
+        if (!row[inventoryIndex] && !row[ventaIndex] && localMonthIndexes.every(i => !row[i])) {
           currentCategory = nombreProducto.trim();
           if (!categories[currentCategory]) categories[currentCategory] = [];
         } else if (currentCategory) {
-          // Es un producto
-          const meses = monthIndexes.map(i => parseFloat(row[i]) || 0);
+          const meses = localMonthIndexes.map(i => parseFloat(row[i]) || 0);
           const promedio = meses.length ? meses.reduce((a, b) => a + b, 0) / meses.length : 0;
-
           const inventario = parseFloat(row[inventoryIndex]) || 0;
           const venta = parseFloat(row[ventaIndex]) || 0;
           const invVenta = inventario + venta;
@@ -105,12 +71,13 @@ function handleFile(event) {
             producto: nombreProducto,
             promedio,
             invVenta,
-            _row: row // Guardamos toda la fila original
+            meses,
+            etiquetas: localMonthIndexes.map(i => localHeaders[i]),
+            cliente: sheetName
           });
         }
       });
 
-      // Calculamos totales por categoría
       const resumen = [];
       Object.entries(categories).forEach(([categoria, productos]) => {
         const sumaPromedios = productos.reduce((sum, p) => sum + p.promedio, 0);
@@ -131,15 +98,11 @@ function handleFile(event) {
 
     renderClientButtons();
     showClient(Object.keys(clientsData)[0]);
-    // Crear o reactivar botón de exportar
-    const exportBtn = document.getElementById("btnExportarExcel");
 
+    const exportBtn = document.getElementById("btnExportarExcel");
     exportBtn.style.pointerEvents = "auto";
     exportBtn.style.opacity = "1";
     exportBtn.onclick = exportarTodoExcel;
-
-
-
   };
 
   reader.readAsArrayBuffer(file);
@@ -161,51 +124,33 @@ function showClient(clientName) {
   const container = document.getElementById("tablesContainer");
   container.innerHTML = "";
   document.getElementById("selectedClientName").textContent = `Cliente: ${clientName}`;
-  document.getElementById("chartCanvas").style.display = "none"; // ocultar canvas
-
 
   const resumen = clientsData[clientName];
   const tableDiv = document.createElement("div");
   tableDiv.className = "table-container show";
 
   resumen.forEach(categoria => {
-    // Contenedor de botones alineados horizontalmente
-    const btnContainer = document.createElement("div");
-    btnContainer.style.display = "flex";
-    btnContainer.style.flexWrap = "wrap";
-    btnContainer.style.justifyContent = "center";
-    btnContainer.style.gap = "10px";
-    btnContainer.style.marginBottom = "20px";
+    const container = document.createElement("div");
+    container.style.marginBottom = "30px";
 
-    categoria.productos.forEach(prod => {
-      const btn = document.createElement("button");
-      btn.textContent = `Ver gráfica de ${prod.producto}`;
-      btn.style.padding = "8px";
-      btn.style.background = "#4caf50";
-      btn.style.color = "#fff";
-      btn.style.border = "none";
-      btn.style.borderRadius = "4px";
-      btn.style.cursor = "pointer";
-      btn.onmouseover = () => btn.style.background = "#388e3c";
-      btn.onmouseleave = () => btn.style.background = "#4caf50";
+    // Botón para mostrar gráfica
+    const graphBtn = document.createElement("button");
+    graphBtn.textContent = "Mostrar gráfica de la tabla";
+    graphBtn.className = "container-btn-file";
+    graphBtn.style.margin = "0 auto 20px auto";
+    graphBtn.style.display = "block";
 
-      btn.onclick = () => renderChartProducto(prod.producto, monthIndexesGlobal, prod._row, headersGlobal);
-      btnContainer.appendChild(btn);
-    });
-
-    tableDiv.appendChild(btnContainer);
-
+    graphBtn.onclick = () => mostrarGraficaCategoria(categoria);
+    container.appendChild(graphBtn);
 
     const table = document.createElement("table");
 
-    // Título categoría
     const title = document.createElement("caption");
     title.textContent = categoria.categoria;
     title.style.fontWeight = "bold";
     title.style.fontSize = "1.2em";
     table.appendChild(title);
 
-    // Cabecera
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
     ["Producto", "Promedio Meses", "Inventario + Venta"].forEach(h => {
@@ -216,7 +161,6 @@ function showClient(clientName) {
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
-    // Datos productos
     const tbody = document.createElement("tbody");
     categoria.productos.forEach(prod => {
       const row = document.createElement("tr");
@@ -228,28 +172,17 @@ function showClient(clientName) {
       tbody.appendChild(row);
     });
 
-    // Fila resumen categoría
     const resumenRow = document.createElement("tr");
     resumenRow.style.fontWeight = "bold";
-
-    const td1 = document.createElement("td");
-    td1.textContent = "RESUMEN";
-    const td2 = document.createElement("td");
-    td2.textContent = categoria.sumaPromedios.toFixed(1);
-    const td3 = document.createElement("td");
-    td3.textContent = categoria.sumaInvVenta.toFixed(1);
-
-    resumenRow.appendChild(td1);
-    resumenRow.appendChild(td2);
-    resumenRow.appendChild(td3);
+    resumenRow.appendChild(createCell("RESUMEN"));
+    resumenRow.appendChild(createCell(categoria.sumaPromedios.toFixed(1)));
+    resumenRow.appendChild(createCell(categoria.sumaInvVenta.toFixed(1)));
     tbody.appendChild(resumenRow);
 
-    // Fila división
     const divisionRow = document.createElement("tr");
     const tdCat = document.createElement("td");
     tdCat.textContent = categoria.categoria;
     tdCat.colSpan = 2;
-
     const tdDivision = document.createElement("td");
     tdDivision.textContent = `Resultado: ${categoria.division.toFixed(1)}`;
     divisionRow.appendChild(tdCat);
@@ -257,104 +190,18 @@ function showClient(clientName) {
     tbody.appendChild(divisionRow);
 
     table.appendChild(tbody);
-    tableDiv.appendChild(table);
+    container.appendChild(table);
+    tableDiv.appendChild(container);
+
   });
 
   container.appendChild(tableDiv);
-  const allProducts = resumen.flatMap(cat => cat.productos);
-  const btnTodos = document.createElement("button");
-  btnTodos.textContent = "📊 Ver gráfica de todos los productos";
-  btnTodos.style.marginTop = "20px";
-  btnTodos.style.padding = "10px";
-  btnTodos.style.background = "#ff9800";
-  btnTodos.style.color = "#fff";
-  btnTodos.style.border = "none";
-  btnTodos.style.borderRadius = "4px";
-  btnTodos.style.cursor = "pointer";
-  btnTodos.onmouseover = () => btnTodos.style.background = "#e68900";
-  btnTodos.onmouseleave = () => btnTodos.style.background = "#ff9800";
-  btnTodos.onclick = () => renderChartTodosProductos(allProducts, monthIndexesGlobal, headersGlobal);
-  tableDiv.appendChild(btnTodos);
-
-}
-function renderChartProducto(productName, monthIndexes, row, headers) {
-  const ctx = document.getElementById("modalChartCanvas").getContext("2d");
-  if (window.currentChart) {
-    window.currentChart.destroy();
-  }
-
-  const labels = monthIndexes.map(i => headers[i]);
-  const data = monthIndexes.map(i => parseFloat(row[i]));
-
-  window.currentChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: productName,
-        data,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        fill: false,
-        tension: 0.1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-
-  openModal();
 }
 
-function renderChartTodosProductos(productos, monthIndexes, headers) {
-  const ctx = document.getElementById("chartCanvas").getContext("2d");
-  const labels = monthIndexes.map(i => headers[i]);
-
-  const datasets = productos.map(prod => ({
-    label: prod.producto,
-    data: monthIndexes.map(i => parseFloat(prod._row[i]) || 0),
-    fill: false,
-    borderColor: getRandomColor(),
-    tension: 0.2
-  }));
-
-  if (chartInstance) chartInstance.destroy();
-
-  chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets
-    },
-    options: {
-      responsive: true,
-      animation: {
-        duration: 800
-      },
-      plugins: {
-        title: {
-          display: true,
-          text: 'Ventas de todos los productos'
-        }
-      }
-    }
-  });
-
-  document.getElementById("chartCanvas").style.display = "block";
-}
-function getRandomColor() {
-  const letters = '0123456789ABCDEF';
-  let color = '#';
-  for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)];
-  return color;
-}
-function openModal() {
-  document.getElementById("chartModal").style.display = "flex";
-}
-
-function closeModal() {
-  document.getElementById("chartModal").style.display = "none";
+function createCell(content) {
+  const td = document.createElement("td");
+  td.textContent = content;
+  return td;
 }
 
 function exportarTodoExcel() {
@@ -366,7 +213,6 @@ function exportarTodoExcel() {
 
   for (const cliente in clientsData) {
     const resumen = clientsData[cliente];
-
     const data = [];
 
     resumen.forEach(categoria => {
@@ -374,28 +220,11 @@ function exportarTodoExcel() {
       data.push(["Producto", "Promedio Meses", "Inventario + Venta"]);
 
       categoria.productos.forEach(prod => {
-        data.push([
-          prod.producto,
-          prod.promedio.toFixed(1),
-          prod.invVenta.toFixed(1)
-        ]);
+        data.push([prod.producto, prod.promedio.toFixed(1), prod.invVenta.toFixed(1)]);
       });
 
-      // Fila resumen
-      data.push([
-        "RESUMEN",
-        categoria.sumaPromedios.toFixed(1),
-        categoria.sumaInvVenta.toFixed(1)
-      ]);
-
-      // División
-      data.push([
-        categoria.categoria,
-        "",
-        `Resultado: ${categoria.division.toFixed(1)}`
-      ]);
-
-      // Línea vacía entre categorías
+      data.push(["RESUMEN", categoria.sumaPromedios.toFixed(1), categoria.sumaInvVenta.toFixed(1)]);
+      data.push([categoria.categoria, "", `Resultado: ${categoria.division.toFixed(1)}`]);
       data.push([]);
     });
 
@@ -404,4 +233,68 @@ function exportarTodoExcel() {
   }
 
   XLSX.writeFile(wb, "ResumenClientes.xlsx");
+}
+let chartInstance = null;
+
+function mostrarGraficaCategoria(categoria) {
+  const labelsSet = new Set();
+  categoria.productos.forEach(producto => {
+    producto.etiquetas.forEach(etiqueta => labelsSet.add(etiqueta));
+  });
+  const labels = Array.from(labelsSet);
+
+  const datasets = categoria.productos.map(prod => {
+    const dataMap = {};
+    prod.etiquetas.forEach((et, i) => {
+      dataMap[et] = prod.meses[i];
+    });
+
+    return {
+      label: prod.producto,
+      data: labels.map(et => dataMap[et] ?? null), // Evita valores cruzados
+      borderColor: getRandomColor(),
+      fill: false
+    };
+  });
+
+
+  const ctx = document.getElementById("modalChartCanvas").getContext("2d");
+
+  // Destruir instancia previa
+  if (window.currentChartInstance) {
+    window.currentChartInstance.destroy();
+  }
+
+
+
+  window.currentChartInstance = new Chart(ctx, {
+
+    type: 'line',
+    data: {
+      labels,
+      datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: `Gráfico de ${categoria.categoria}`,
+          font: {
+            size: 20
+          }
+        }
+      }
+    }
+  });
+
+  document.getElementById("chartModal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("chartModal").style.display = "none";
+}
+
+function getRandomColor() {
+  return `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
 }

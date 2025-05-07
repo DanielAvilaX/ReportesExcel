@@ -1,6 +1,6 @@
 /* Fondo general */
 body {
-  background-image: url('fondo.jpg'); /* Ajusta la ruta según tu estructura */
+  background-image: url('./fondo.jpg'); /* Ajusta la ruta según tu estructura */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
