@@ -6,13 +6,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reporte de Clientes</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>Reporte de Clientes desde Excel</h1>
-  <button class="container-btn-file">
-    <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 50 50">
-      <path d="M28.8125 .03125L.8125 5.34375C.339844 
+  <h1 style="color: white; text-shadow: 0 0 10px rgb(0, 0, 0);">Reporte de Clientes desde Excel</h1>
+  <div id="topBar"
+    style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 40px 20px 40px; box-sizing: border-box;">
+  </div>
+  <div id="botones-superiores"
+    style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 40px 20px 40px; box-sizing: border-box;">
+    <!-- Botón Subir archivo -->
+    <button class="container-btn-file" id="btnSubirArchivo">
+      <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 50 50">
+        <path d="M28.8125 .03125L.8125 5.34375C.339844 
     5.433594 0 5.863281 0 6.34375L0 43.65625C0 
     44.136719 .339844 44.566406 .8125 44.65625L28.8125 
     49.96875C28.875 49.980469 28.9375 50 29 50C29.230469 
@@ -30,24 +47,45 @@
     27.03125L14.875 27.03125C14.8125 27.316406 14.664063 27.761719 
     14.4375 28.34375L11.1875 34.375L6.1875 34.375L12.15625 25.03125ZM36 
     20L44 20L44 22L36 22ZM36 27L44 27L44 29L36 29ZM36 35L44 35L44 37L36 37Z"></path>
-    </svg>
-    Subir archivo
-    <input type="file" id="excelFile" accept=".xlsx, .xls" />
-  </button>
+      </svg>
+      Subir archivo
+      <input type="file" id="excelFile" accept=".xlsx, .xls" />
+    </button>
 
+    <!-- Botón Exportar Excel -->
+    <label class="container-btn-file" id="btnExportarExcel"
+      style="cursor: pointer; opacity: 0.5; pointer-events: none;">
+      <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+        <path d="M5 20h14v-2H5v2zm7-18L5.33 9h4.34v6h4.66v-6h4.34L12 2z" />
+      </svg>
+      <span style="margin-left: 8px;">Exportar Excel</span>
+    </label>
+  </div>
+
+  <!-- Botones de cliente -->
   <div id="clientButtons" class="buttons"></div>
+
+  <!-- Botón global expandir tablas (oculto inicialmente) -->
+  <div id="expandirGlobalWrapper" style="text-align: center; margin-bottom: 20px; display: none;">
+    <button id="toggleAllTables" class="boton-global-tablas">Expandir todas las tablas</button>
+  </div>
+  <div id="clientButtons" class="buttons"></div>
+
+
+
   <h2 id="selectedClientName" style="text-align: center; margin-top: 20px;"></h2>
-  <label class="container-btn-file" id="btnExportarExcel" style="cursor: pointer; opacity: 0.5; pointer-events: none;">
-    <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-      <path d="M5 20h14v-2H5v2zm7-18L5.33 9h4.34v6h4.66v-6h4.34L12 2z"/>
-    </svg>
-    <span style="margin-left: 8px;">Exportar Excel</span>
-  </label>
-    </button>  
-  <div id="clientTitle"></div>
+  <div id="client</label>Title"></div>
   <div id="tablesContainer"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Botón global también al final -->
+  <div id="expandirGlobalWrapperBottom" style="text-align: center; margin: 30px 0; display: none;">
+    <button id="toggleAllTablesBottom" class="boton-global-tablas">Expandir todas las tablas</button>
+  </div>
+
+
+
+
+  <script src="https://cdn.jsdelivr.net/np</svg>m/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <canvas id="chartCanvas" style="max-width: 1000px; margin: 40px auto; display: none;"></canvas>
@@ -61,7 +99,7 @@
   align-items: center;
   z-index: 9999;
 ">
-  <div style="
+    <div style="
     background: white;
     padding: 20px;
     border-radius: 8px;
@@ -74,7 +112,7 @@
     flex-direction: column;
     align-items: flex-end;
   ">
-    <button onclick="closeModal()" style="
+      <button onclick="closeModal()" style="
       background: #f44336;
       color: white;
       border: none;
@@ -85,14 +123,19 @@
       align-self: flex-end;
       margin-bottom: 10px;
     ">Cerrar</button>
-    <div style="width: 100%; height: 400px;">
-      <canvas id="modalChartCanvas" style="width:100%; height:100%;"></canvas>
+      <div style="width: 100%; height: 400px;">
+        <canvas id="modalChartCanvas" style="width:100%; height:100%;"></canvas>
+      </div>
     </div>
   </div>
-</div>
 
   </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <div class="text-right" style="position: fixed; bottom: 10px; right: 20px;">
+    <p style="font-size: 14px; color: #6c757d;"><strong>Desarrollado por Daniel Avila</strong>, Ingeniero de
+      Software</p>
+  </div>
 </body>
 
 </html>

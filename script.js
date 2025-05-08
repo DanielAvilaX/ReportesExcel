@@ -73,7 +73,8 @@ function handleFile(event) {
             invVenta,
             meses,
             etiquetas: localMonthIndexes.map(i => localHeaders[i]),
-            cliente: sheetName
+            cliente: sheetName,
+
           });
         }
       });
@@ -103,9 +104,13 @@ function handleFile(event) {
     exportBtn.style.pointerEvents = "auto";
     exportBtn.style.opacity = "1";
     exportBtn.onclick = exportarTodoExcel;
+    document.getElementById("expandirGlobalWrapper").style.display = "block";
+    document.getElementById("expandirGlobalWrapperBottom").style.display = "block";
+
   };
 
   reader.readAsArrayBuffer(file);
+  document.getElementById("expandirGlobalWrapper").style.display = "block";
 }
 
 function renderClientButtons() {
@@ -116,39 +121,54 @@ function renderClientButtons() {
     const btn = document.createElement("button");
     btn.textContent = clientName;
     btn.onclick = () => showClient(clientName);
-    container.appendChild(btn);
+    container.appendChild(btn); // <- ahora sí correcto
   });
 }
+
 
 function showClient(clientName) {
   const container = document.getElementById("tablesContainer");
   container.innerHTML = "";
-  document.getElementById("selectedClientName").textContent = `Cliente: ${clientName}`;
+  const selectedClientNameElement = document.getElementById("selectedClientName");
+  selectedClientNameElement.textContent = `Cliente: ${clientName}`;
+  selectedClientNameElement.style.color = "white";
+  selectedClientNameElement.style.textShadow = "0 0 5px #000000, 0 0 10px #000000, 0 0 20px #000000";
 
   const resumen = clientsData[clientName];
-  const tableDiv = document.createElement("div");
-  tableDiv.className = "table-container show";
 
-  resumen.forEach(categoria => {
-    const container = document.createElement("div");
-    container.style.marginBottom = "30px";
+  resumen.forEach((categoria, index) => {
+    const categoriaBox = document.createElement("div");
+    categoriaBox.className = "categoria-container"; // ✅ aquí va
+    categoriaBox.style.marginBottom = "20px";
 
-    // Botón para mostrar gráfica
-    const graphBtn = document.createElement("button");
-    graphBtn.textContent = "Mostrar gráfica de la tabla";
-    graphBtn.className = "container-btn-file";
-    graphBtn.style.margin = "0 auto 20px auto";
-    graphBtn.style.display = "block";
+    const resumenHeader = document.createElement("div");
+    resumenHeader.className = "categoria-header";
 
-    graphBtn.onclick = () => mostrarGraficaCategoria(categoria);
-    container.appendChild(graphBtn);
+    const titulo = document.createElement("span");
+    titulo.textContent = categoria.categoria;
+    titulo.className = "categoria-titulo";
+
+    const resultado = document.createElement("span");
+    resultado.textContent = `Resultado: ${categoria.division.toFixed(1)}`;
+    resultado.className = "categoria-resultado";
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = "toggle-btn";
+    toggleBtn.textContent = "Expandir tabla";
+    toggleBtn.onclick = () => toggleTabla(index, toggleBtn);
+
+    resumenHeader.appendChild(titulo);
+    resumenHeader.appendChild(resultado);
+    resumenHeader.appendChild(toggleBtn);
+    categoriaBox.appendChild(resumenHeader);
+
+    const collapsible = document.createElement("div");
+    collapsible.className = "tabla-collapsable";
+    collapsible.id = `collapsable-${index}`;
 
     const table = document.createElement("table");
-
     const title = document.createElement("caption");
     title.textContent = categoria.categoria;
-    title.style.fontWeight = "bold";
-    title.style.fontSize = "1.2em";
     table.appendChild(title);
 
     const thead = document.createElement("thead");
@@ -179,24 +199,34 @@ function showClient(clientName) {
     resumenRow.appendChild(createCell(categoria.sumaInvVenta.toFixed(1)));
     tbody.appendChild(resumenRow);
 
-    const divisionRow = document.createElement("tr");
-    const tdCat = document.createElement("td");
-    tdCat.textContent = categoria.categoria;
-    tdCat.colSpan = 2;
-    const tdDivision = document.createElement("td");
-    tdDivision.textContent = `Resultado: ${categoria.division.toFixed(1)}`;
-    divisionRow.appendChild(tdCat);
-    divisionRow.appendChild(tdDivision);
-    tbody.appendChild(divisionRow);
-
     table.appendChild(tbody);
-    container.appendChild(table);
-    tableDiv.appendChild(container);
+    collapsible.appendChild(table);
 
+    const accionesRow = document.createElement("div");
+    accionesRow.style.display = "flex";
+    accionesRow.style.justifyContent = "space-between";
+    accionesRow.style.alignItems = "center";
+    accionesRow.style.margin = "10px 20px";
+
+    const btnGrafica = document.createElement("button");
+    btnGrafica.textContent = "Grafica";
+    btnGrafica.className = "toggle-btn";
+    btnGrafica.onclick = () => mostrarGraficaCategoria(categoria);
+
+    const btnContraer = document.createElement("button");
+    btnContraer.textContent = "Contraer tabla";
+    btnContraer.className = "toggle-btn";
+    btnContraer.onclick = () => toggleTabla(index, toggleBtn);
+
+    accionesRow.appendChild(btnGrafica);
+    accionesRow.appendChild(btnContraer);
+    collapsible.appendChild(accionesRow);
+
+    categoriaBox.appendChild(collapsible);
+    container.appendChild(categoriaBox); // ✅
   });
-
-  container.appendChild(tableDiv);
 }
+
 
 function createCell(content) {
   const td = document.createElement("td");
@@ -298,3 +328,36 @@ function closeModal() {
 function getRandomColor() {
   return `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
 }
+function toggleTabla(index, btn) {
+  const section = document.getElementById(`collapsable-${index}`);
+  const expanded = section.classList.toggle("expandida");
+  btn.textContent = expanded ? "Contraer tabla" : "Expandir tabla";
+}
+const btnGlobalTop = document.getElementById("toggleAllTables");
+const btnGlobalBottom = document.getElementById("toggleAllTablesBottom");
+
+btnGlobalTop.addEventListener("click", () => toggleTodasLasTablas());
+btnGlobalBottom.addEventListener("click", () => toggleTodasLasTablas());
+
+function toggleTodasLasTablas() {
+  const allCollapsibles = document.querySelectorAll(".tabla-collapsable");
+  const expandir = ![...allCollapsibles].some(el => el.classList.contains("expandida"));
+
+  document.querySelectorAll(".categoria-header").forEach((header, i) => {
+    const toggleBtn = header.querySelector(".toggle-btn");
+    const collapsible = document.getElementById(`collapsable-${i}`);
+    if (expandir) {
+      collapsible.classList.add("expandida");
+      toggleBtn.textContent = "Contraer tabla";
+    } else {
+      collapsible.classList.remove("expandida");
+      toggleBtn.textContent = "Expandir tabla";
+    }
+  });
+
+  // Cambiar texto en ambos botones globales
+  btnGlobalTop.textContent = expandir ? "Contraer todas las tablas" : "Expandir todas las tablas";
+  btnGlobalBottom.textContent = expandir ? "Contraer todas las tablas" : "Expandir todas las tablas";
+}
+
+

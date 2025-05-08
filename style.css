@@ -1,6 +1,6 @@
 /* Fondo general */
 body {
-  background-image: url('./fondo.jpg'); /* Ajusta la ruta según tu estructura */
+  background-image: url('./fondo.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -156,3 +156,99 @@ tr:last-child {
   display: inline-block;
   margin: 0;
 }
+
+.categoria-container {
+  background: #ffffffd9;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.categoria-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background-color: #0078d7;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.categoria-resultado {
+  flex: 1;
+  text-align: center;
+}
+
+
+.toggle-btn {
+  background-color: white;
+  color: #0078d7;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.tabla-collapsable {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s ease-out;
+}
+
+.tabla-collapsable.expandida {
+  max-height: 1000px; /* suficiente para mostrar la tabla completa */
+  transition: max-height 0.5s ease-in;
+}
+.boton-global-tablas {
+  background-color: #f39c12;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.boton-global-tablas:hover {
+  background-color: #d35400;
+}
+.toggle-bottom {
+  display: block;
+  margin: 15px auto;
+}
+.toggle-btn {
+  background-color: #ffffff;
+  color: #0078d7;
+  border: 2px solid #0078d7;
+  padding: 6px 12px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-btn:hover {
+  background-color: #0078d7;
+  color: white;
+}
+#tablesContainer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 20px;
+  max-width: 1200px;
+  margin: auto;
+}
+
+
+.categoria-container {
+  flex: 0 1 calc(50% - 20px); 
+  box-sizing: border-box;
+}
+
