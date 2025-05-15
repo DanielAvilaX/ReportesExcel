@@ -1,307 +1,235 @@
 document.getElementById("excelFile").addEventListener("change", handleFile, false);
 
 let clientsData = {};
-let headersLocal = [];
-let monthIndexes = [];
-let localHeadersPorCliente = {};
-let localMonthIndexesPorCliente = {};
 
 function handleFile(event) {
   const file = event.target.files[0];
+  if (!file || !file.name.match(/\.(xlsx|xls)$/)) {
+    alert("Por favor selecciona un archivo Excel válido.");
+    return;
+  }
+
   const reader = new FileReader();
 
   reader.onload = function (e) {
     const data = new Uint8Array(e.target.result);
     const workbook = XLSX.read(data, { type: "array" });
-
     clientsData = {};
 
     workbook.SheetNames.forEach(sheetName => {
       const sheet = workbook.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      const localHeaders = json[0];
+      if (!json || json.length < 17) return;
 
-      const rawMonthVariants = [
-        "enero", "ene", "febrero", "feb", "marzo", "mar", "abril", "abr", "mayo", "may",
-        "junio", "jun", "julio", "jul", "agosto", "ago", "septiembre", "sep", "set",
-        "octubre", "oct", "noviembre", "nov", "diciembre", "dic",
-        "january", "jan", "february", "feb", "march", "mar", "april", "apr",
-        "may", "june", "jun", "july", "jul", "august", "aug", "september", "sep",
-        "october", "oct", "november", "nov", "december", "dec"
-      ];
+      const etiquetas = json[10].slice(12, 18).map(e => e?.toString().trim());
 
-      const monthNames = rawMonthVariants.map(m =>
-        m.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-      );
+      const dataCliente = {};
+      let negocioActual = null;
+      let lineaActual = null;
 
-      const localMonthIndexes = localHeaders
-        .map((h, i) => {
-          const normalized = h?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-          return { h: normalized, i };
-        })
-        .filter(({ h }) => monthNames.includes(h))
-        .map(({ i }) => i);
+      for (let i = 14; i < json.length; i++) {
+        const row = json[i];
+        const celdaC = row[2]?.toString().trim();
 
-      localHeadersPorCliente[sheetName] = localHeaders;
-      localMonthIndexesPorCliente[sheetName] = localMonthIndexes;
+        const esNegocio = /^\d{3}\s*-\s*/.test(celdaC);
+        const esLinea = celdaC?.toLowerCase().startsWith("línea:");
 
-      const inventoryIndex = localHeaders.findIndex(h => h.toString().toLowerCase() === "inventario");
-      const ventaIndex = localHeaders.findIndex(h => h.toString().toLowerCase() === "venta");
+        if (esNegocio && json[i + 1]?.[2]?.toLowerCase().startsWith("línea:")) {
+          negocioActual = celdaC;
+          i++; // Saltamos a la línea
+          lineaActual = json[i][2]?.toString().trim();
+          if (!dataCliente[negocioActual]) dataCliente[negocioActual] = {};
+          if (!dataCliente[negocioActual][lineaActual]) dataCliente[negocioActual][lineaActual] = [];
+          continue;
+        }
 
-      const rows = json.slice(1).filter(row => row.length > 0);
-      let currentCategory = null;
-      const categories = {};
+        // Si celda C no es nula, pero no es línea ni negocio, es producto
+        const esProducto = !esNegocio && !esLinea && celdaC !== undefined && celdaC !== null && celdaC !== "";
 
-      rows.forEach(row => {
-        const nombreProducto = row[0];
-        if (!nombreProducto || nombreProducto.trim() === "") return;
+        if (esProducto && negocioActual && lineaActual) {
+          const ventas = row.slice(12, 18).map(v => parseInt(v) || 0);
+          const promedio = ventas.reduce((a, b) => a + b, 0) / ventas.length;
 
-        if (!row[inventoryIndex] && !row[ventaIndex] && localMonthIndexes.every(i => !row[i])) {
-          currentCategory = nombreProducto.trim();
-          if (!categories[currentCategory]) categories[currentCategory] = [];
-        } else if (currentCategory) {
-          const meses = localMonthIndexes.map(i => parseFloat(row[i]) || 0);
-          const promedio = meses.length ? meses.reduce((a, b) => a + b, 0) / meses.length : 0;
-          const inventario = parseFloat(row[inventoryIndex]) || 0;
-          const venta = parseFloat(row[ventaIndex]) || 0;
-          const invVenta = inventario + venta;
-
-          categories[currentCategory].push({
-            producto: nombreProducto,
-            promedio,
-            invVenta,
-            meses,
-            etiquetas: localMonthIndexes.map(i => localHeaders[i]),
-            cliente: sheetName,
-
+          dataCliente[negocioActual][lineaActual].push({
+            producto: celdaC,
+            ventasPorMes: ventas,
+            etiquetas,
+            promedio
           });
         }
-      });
+      }
 
-      const resumen = [];
-      Object.entries(categories).forEach(([categoria, productos]) => {
-        const sumaPromedios = productos.reduce((sum, p) => sum + p.promedio, 0);
-        const sumaInvVenta = productos.reduce((sum, p) => sum + p.invVenta, 0);
-        const division = sumaPromedios ? sumaInvVenta / sumaPromedios : 0;
-
-        resumen.push({
-          categoria,
-          productos,
-          sumaPromedios,
-          sumaInvVenta,
-          division
-        });
-      });
-
-      clientsData[sheetName] = resumen;
+      clientsData[sheetName] = dataCliente;
     });
 
     renderClientButtons();
     showClient(Object.keys(clientsData)[0]);
 
-    const exportBtn = document.getElementById("btnExportarExcel");
-    exportBtn.style.pointerEvents = "auto";
-    exportBtn.style.opacity = "1";
-    exportBtn.onclick = exportarTodoExcel;
-    document.getElementById("expandirGlobalWrapper").style.display = "block";
-    document.getElementById("expandirGlobalWrapperBottom").style.display = "block";
-
+    document.getElementById("btnExportarExcel").style.pointerEvents = "auto";
+    document.getElementById("btnExportarExcel").style.opacity = "1";
   };
 
   reader.readAsArrayBuffer(file);
-  document.getElementById("expandirGlobalWrapper").style.display = "block";
 }
 
 function renderClientButtons() {
   const container = document.getElementById("clientButtons");
   container.innerHTML = "";
-
   Object.keys(clientsData).forEach(clientName => {
     const btn = document.createElement("button");
     btn.textContent = clientName;
     btn.onclick = () => showClient(clientName);
-    container.appendChild(btn); // <- ahora sí correcto
+    container.appendChild(btn);
   });
 }
-
 
 function showClient(clientName) {
   const container = document.getElementById("tablesContainer");
   container.innerHTML = "";
+
   const selectedClientNameElement = document.getElementById("selectedClientName");
   selectedClientNameElement.textContent = `Cliente: ${clientName}`;
   selectedClientNameElement.style.color = "white";
-  selectedClientNameElement.style.textShadow = "0 0 5px #000000, 0 0 10px #000000, 0 0 20px #000000";
+  selectedClientNameElement.style.textShadow = "0 0 5px #000000, 0 0 10px #000000";
 
   const resumen = clientsData[clientName];
 
-  resumen.forEach((categoria, index) => {
-    const categoriaBox = document.createElement("div");
-    categoriaBox.className = "categoria-container"; // ✅ aquí va
-    categoriaBox.style.marginBottom = "20px";
+  Object.entries(resumen).forEach(([negocio, lineas]) => {
+    const negocioBox = document.createElement("div");
+    negocioBox.className = "negocio-container";
+    negocioBox.style.margin = "20px auto";
+    negocioBox.style.maxWidth = "1000px";
 
-    const resumenHeader = document.createElement("div");
-    resumenHeader.className = "categoria-header";
-
-    const titulo = document.createElement("span");
-    titulo.textContent = categoria.categoria;
-    titulo.className = "categoria-titulo";
-
-    const resultado = document.createElement("span");
-    resultado.textContent = `Resultado: ${categoria.division.toFixed(1)}`;
-    resultado.className = "categoria-resultado";
-
-    const toggleBtn = document.createElement("button");
-    toggleBtn.className = "toggle-btn";
-    toggleBtn.textContent = "Expandir tabla";
-    toggleBtn.onclick = () => toggleTabla(index, toggleBtn);
-
-    resumenHeader.appendChild(titulo);
-    resumenHeader.appendChild(resultado);
-    resumenHeader.appendChild(toggleBtn);
-    categoriaBox.appendChild(resumenHeader);
-
-    const collapsible = document.createElement("div");
-    collapsible.className = "tabla-collapsable";
-    collapsible.id = `collapsable-${index}`;
+    const tituloNegocio = document.createElement("h3");
+    tituloNegocio.textContent = negocio;
+    tituloNegocio.style.color = "#0078d7";
+    negocioBox.appendChild(tituloNegocio);
 
     const table = document.createElement("table");
-    const title = document.createElement("caption");
-    title.textContent = categoria.categoria;
-    table.appendChild(title);
 
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    ["Producto", "Promedio Meses", "Inventario + Venta"].forEach(h => {
+
+    // Encabezados: Línea | Producto | Promedio | Meses dinámicos
+    ["Línea", "Producto", "Promedio"].forEach(h => {
       const th = document.createElement("th");
       th.textContent = h;
       headerRow.appendChild(th);
     });
+
+    const exampleProducto = Object.values(lineas)[0]?.[0];
+    const etiquetas = exampleProducto?.etiquetas || ["Mes 1", "Mes 2", "Mes 3", "Mes 4", "Mes 5", "Mes 6"];
+    etiquetas.forEach(mes => {
+      const th = document.createElement("th");
+      th.textContent = mes;
+      headerRow.appendChild(th);
+    });
+
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
-    categoria.productos.forEach(prod => {
-      const row = document.createElement("tr");
-      [prod.producto, prod.promedio.toFixed(1), prod.invVenta.toFixed(1)].forEach(text => {
-        const td = document.createElement("td");
-        td.textContent = text;
-        row.appendChild(td);
-      });
-      tbody.appendChild(row);
-    });
 
-    const resumenRow = document.createElement("tr");
-    resumenRow.style.fontWeight = "bold";
-    resumenRow.appendChild(createCell("RESUMEN"));
-    resumenRow.appendChild(createCell(categoria.sumaPromedios.toFixed(1)));
-    resumenRow.appendChild(createCell(categoria.sumaInvVenta.toFixed(1)));
-    tbody.appendChild(resumenRow);
+    Object.entries(lineas).forEach(([linea, productos]) => {
+      // Calcular promedio real de todos los valores
+      let suma = 0;
+      let count = 0;
+
+      productos.forEach(p => {
+        p.ventasPorMes.forEach(v => {
+          if (!isNaN(v)) {
+            suma += v;
+            count++;
+          }
+        });
+      });
+
+      const promedioLinea = count > 0 ? Math.round(suma / count) : 0;
+
+      // Subtítulo línea
+      const filaLinea = document.createElement("tr");
+      const tdLinea = document.createElement("td");
+      tdLinea.colSpan = 9;
+      tdLinea.innerHTML = `
+        <div class="linea-subtitulo" style="font-weight:bold; padding:10px 0 5px 0;">${linea}</div>
+        <div style="margin: 5px 0;"><strong>Promedio total de ventas (línea):</strong> ${promedioLinea}</div>`;
+      filaLinea.appendChild(tdLinea);
+      tbody.appendChild(filaLinea);
+
+      productos.forEach(prod => {
+        const row = document.createElement("tr");
+
+        const tdLineaNombre = document.createElement("td");
+        tdLineaNombre.textContent = ""; // Línea ya está arriba
+
+        const tdProd = document.createElement("td");
+        tdProd.textContent = prod.producto;
+
+        const tdProm = document.createElement("td");
+        tdProm.textContent = Math.round(prod.promedio);
+
+        row.appendChild(tdLineaNombre);
+        row.appendChild(tdProd);
+        row.appendChild(tdProm);
+
+        prod.ventasPorMes.forEach(v => {
+          const td = document.createElement("td");
+          td.textContent = v;
+          row.appendChild(td);
+        });
+
+        tbody.appendChild(row);
+      });
+
+      // Botón gráfico
+      const filaBoton = document.createElement("tr");
+      const tdBoton = document.createElement("td");
+      tdBoton.colSpan = 9;
+      tdBoton.style.textAlign = "right";
+
+      const graficaBtn = document.createElement("button");
+      graficaBtn.className = "toggle-btn";
+      graficaBtn.textContent = "Gráfica de ventas";
+      graficaBtn.onclick = () => mostrarGraficaLinea(linea, productos);
+
+      tdBoton.appendChild(graficaBtn);
+      filaBoton.appendChild(tdBoton);
+      tbody.appendChild(filaBoton);
+    });
 
     table.appendChild(tbody);
-    collapsible.appendChild(table);
-
-    const accionesRow = document.createElement("div");
-    accionesRow.style.display = "flex";
-    accionesRow.style.justifyContent = "space-between";
-    accionesRow.style.alignItems = "center";
-    accionesRow.style.margin = "10px 20px";
-
-    const btnGrafica = document.createElement("button");
-    btnGrafica.textContent = "Grafica";
-    btnGrafica.className = "toggle-btn";
-    btnGrafica.onclick = () => mostrarGraficaCategoria(categoria);
-
-    const btnContraer = document.createElement("button");
-    btnContraer.textContent = "Contraer tabla";
-    btnContraer.className = "toggle-btn";
-    btnContraer.onclick = () => toggleTabla(index, toggleBtn);
-
-    accionesRow.appendChild(btnGrafica);
-    accionesRow.appendChild(btnContraer);
-    collapsible.appendChild(accionesRow);
-
-    categoriaBox.appendChild(collapsible);
-    container.appendChild(categoriaBox); // ✅
+    negocioBox.appendChild(table);
+    container.appendChild(negocioBox);
   });
 }
 
 
-function createCell(content) {
-  const td = document.createElement("td");
-  td.textContent = content;
-  return td;
-}
-
-function exportarTodoExcel() {
-  if (!clientsData || Object.keys(clientsData).length === 0) {
-    alert("No hay datos para exportar. Por favor sube primero el archivo.");
+function mostrarGraficaLinea(linea, productos) {
+  if (!productos || productos.length === 0 || !productos[0].etiquetas) {
+    alert("No hay datos disponibles para esta línea.");
     return;
   }
-  const wb = XLSX.utils.book_new();
 
-  for (const cliente in clientsData) {
-    const resumen = clientsData[cliente];
-    const data = [];
+  const etiquetas = productos[0].etiquetas;
 
-    resumen.forEach(categoria => {
-      data.push([`Categoría: ${categoria.categoria}`]);
-      data.push(["Producto", "Promedio Meses", "Inventario + Venta"]);
-
-      categoria.productos.forEach(prod => {
-        data.push([prod.producto, prod.promedio.toFixed(1), prod.invVenta.toFixed(1)]);
-      });
-
-      data.push(["RESUMEN", categoria.sumaPromedios.toFixed(1), categoria.sumaInvVenta.toFixed(1)]);
-      data.push([categoria.categoria, "", `Resultado: ${categoria.division.toFixed(1)}`]);
-      data.push([]);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, cliente);
-  }
-
-  XLSX.writeFile(wb, "ResumenClientes.xlsx");
-}
-let chartInstance = null;
-
-function mostrarGraficaCategoria(categoria) {
-  const labelsSet = new Set();
-  categoria.productos.forEach(producto => {
-    producto.etiquetas.forEach(etiqueta => labelsSet.add(etiqueta));
-  });
-  const labels = Array.from(labelsSet);
-
-  const datasets = categoria.productos.map(prod => {
-    const dataMap = {};
-    prod.etiquetas.forEach((et, i) => {
-      dataMap[et] = prod.meses[i];
-    });
-
-    return {
-      label: prod.producto,
-      data: labels.map(et => dataMap[et] ?? null), // Evita valores cruzados
-      borderColor: getRandomColor(),
-      fill: false
-    };
-  });
-
+  const datasets = productos.map(prod => ({
+    label: prod.producto,
+    data: prod.ventasPorMes,
+    borderColor: getRandomColor(),
+    fill: false
+  }));
 
   const ctx = document.getElementById("modalChartCanvas").getContext("2d");
 
-  // Destruir instancia previa
   if (window.currentChartInstance) {
     window.currentChartInstance.destroy();
   }
 
-
-
   window.currentChartInstance = new Chart(ctx, {
-
     type: 'line',
     data: {
-      labels,
+      labels: etiquetas,
       datasets
     },
     options: {
@@ -309,10 +237,8 @@ function mostrarGraficaCategoria(categoria) {
       plugins: {
         title: {
           display: true,
-          text: `Gráfico de ${categoria.categoria}`,
-          font: {
-            size: 20
-          }
+          text: `Gráfico de ventas por producto - ${linea}`,
+          font: { size: 18 }
         }
       }
     }
@@ -328,36 +254,31 @@ function closeModal() {
 function getRandomColor() {
   return `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
 }
-function toggleTabla(index, btn) {
-  const section = document.getElementById(`collapsable-${index}`);
-  const expanded = section.classList.toggle("expandida");
-  btn.textContent = expanded ? "Contraer tabla" : "Expandir tabla";
-}
-const btnGlobalTop = document.getElementById("toggleAllTables");
-const btnGlobalBottom = document.getElementById("toggleAllTablesBottom");
 
-btnGlobalTop.addEventListener("click", () => toggleTodasLasTablas());
-btnGlobalBottom.addEventListener("click", () => toggleTodasLasTablas());
+function exportarTodoExcel() {
+  const wb = XLSX.utils.book_new();
 
-function toggleTodasLasTablas() {
-  const allCollapsibles = document.querySelectorAll(".tabla-collapsable");
-  const expandir = ![...allCollapsibles].some(el => el.classList.contains("expandida"));
+  for (const cliente in clientsData) {
+    const resumen = clientsData[cliente];
+    const data = [];
 
-  document.querySelectorAll(".categoria-header").forEach((header, i) => {
-    const toggleBtn = header.querySelector(".toggle-btn");
-    const collapsible = document.getElementById(`collapsable-${i}`);
-    if (expandir) {
-      collapsible.classList.add("expandida");
-      toggleBtn.textContent = "Contraer tabla";
-    } else {
-      collapsible.classList.remove("expandida");
-      toggleBtn.textContent = "Expandir tabla";
+    for (const negocio in resumen) {
+      data.push([`NEGOCIO: ${negocio}`]);
+      const lineas = resumen[negocio];
+      for (const linea in lineas) {
+        data.push([`  Línea: ${linea}`]);
+        data.push(["Producto", "Promedio", "Ventas por Mes"]);
+        lineas[linea].forEach(prod => {
+          data.push([prod.producto, prod.promedio.toFixed(1), prod.ventasPorMes.join(", ")]);
+        });
+        data.push([]);
+      }
+      data.push([]);
     }
-  });
 
-  // Cambiar texto en ambos botones globales
-  btnGlobalTop.textContent = expandir ? "Contraer todas las tablas" : "Expandir todas las tablas";
-  btnGlobalBottom.textContent = expandir ? "Contraer todas las tablas" : "Expandir todas las tablas";
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, cliente);
+  }
+
+  XLSX.writeFile(wb, "ResumenClientes.xlsx");
 }
-
-

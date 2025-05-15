@@ -19,35 +19,15 @@
   </style>
 </head>
 
+<!-- Cambia solo esta parte del <body> -->
 <body>
   <h1 style="color: white; text-shadow: 0 0 10px rgb(0, 0, 0);">Reporte de Clientes desde Excel</h1>
-  <div id="topBar"
-    style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 40px 20px 40px; box-sizing: border-box;">
-  </div>
+  
   <div id="botones-superiores"
     style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 40px 20px 40px; box-sizing: border-box;">
     <!-- Botón Subir archivo -->
     <button class="container-btn-file" id="btnSubirArchivo">
-      <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 50 50">
-        <path d="M28.8125 .03125L.8125 5.34375C.339844 
-    5.433594 0 5.863281 0 6.34375L0 43.65625C0 
-    44.136719 .339844 44.566406 .8125 44.65625L28.8125 
-    49.96875C28.875 49.980469 28.9375 50 29 50C29.230469 
-    50 29.445313 49.929688 29.625 49.78125C29.855469 49.589844 
-    30 49.296875 30 49L30 1C30 .703125 29.855469 .410156 29.625 
-    .21875C29.394531 .0273438 29.105469 -.0234375 28.8125 .03125ZM32 
-    6L32 13L34 13L34 15L32 15L32 20L34 20L34 22L32 22L32 27L34 27L34 
-    29L32 29L32 35L34 35L34 37L32 37L32 44L47 44C48.101563 44 49 
-    43.101563 49 42L49 8C49 6.898438 48.101563 6 47 6ZM36 13L44 
-    13L44 15L36 15ZM6.6875 15.6875L11.8125 15.6875L14.5 21.28125C14.710938 
-    21.722656 14.898438 22.265625 15.0625 22.875L15.09375 22.875C15.199219 
-    22.511719 15.402344 21.941406 15.6875 21.21875L18.65625 15.6875L23.34375 
-    15.6875L17.75 24.9375L23.5 34.375L18.53125 34.375L15.28125 
-    28.28125C15.160156 28.054688 15.035156 27.636719 14.90625 
-    27.03125L14.875 27.03125C14.8125 27.316406 14.664063 27.761719 
-    14.4375 28.34375L11.1875 34.375L6.1875 34.375L12.15625 25.03125ZM36 
-    20L44 20L44 22L36 22ZM36 27L44 27L44 29L36 29ZM36 35L44 35L44 37L36 37Z"></path>
-      </svg>
+      <!-- SVG y texto -->
       Subir archivo
       <input type="file" id="excelFile" accept=".xlsx, .xls" />
     </button>
@@ -55,9 +35,7 @@
     <!-- Botón Exportar Excel -->
     <label class="container-btn-file" id="btnExportarExcel"
       style="cursor: pointer; opacity: 0.5; pointer-events: none;">
-      <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-        <path d="M5 20h14v-2H5v2zm7-18L5.33 9h4.34v6h4.66v-6h4.34L12 2z" />
-      </svg>
+      <!-- SVG y texto -->
       <span style="margin-left: 8px;">Exportar Excel</span>
     </label>
   </div>
@@ -65,77 +43,33 @@
   <!-- Botones de cliente -->
   <div id="clientButtons" class="buttons"></div>
 
-  <!-- Botón global expandir tablas (oculto inicialmente) -->
-  <div id="expandirGlobalWrapper" style="text-align: center; margin-bottom: 20px; display: none;">
-    <button id="toggleAllTables" class="boton-global-tablas">Expandir todas las tablas</button>
-  </div>
-  <div id="clientButtons" class="buttons"></div>
-
-
-
+  <!-- Nombre del cliente seleccionado -->
   <h2 id="selectedClientName" style="text-align: center; margin-top: 20px;"></h2>
-  <div id="client</label>Title"></div>
+  <div id="clientTitle"></div>
+
+  <!-- Contenedor de tablas -->
   <div id="tablesContainer"></div>
 
-  <!-- Botón global también al final -->
-  <div id="expandirGlobalWrapperBottom" style="text-align: center; margin: 30px 0; display: none;">
-    <button id="toggleAllTablesBottom" class="boton-global-tablas">Expandir todas las tablas</button>
-  </div>
-
-
-
-
-  <script src="https://cdn.jsdelivr.net/np</svg>m/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="script.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <canvas id="chartCanvas" style="max-width: 1000px; margin: 40px auto; display: none;"></canvas>
-  <div id="chartModal" style="
-  display: none;
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background-color: rgba(0,0,0,0.6);
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-">
-    <div style="
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    position: relative;
-    max-width: 90%;
-    width: 800px;
-    max-height: 90%;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-  ">
-      <button onclick="closeModal()" style="
-      background: #f44336;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 14px;
-      align-self: flex-end;
-      margin-bottom: 10px;
-    ">Cerrar</button>
+  <!-- Gráfica Modal -->
+  <div id="chartModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 9999;">
+    <div style="background: white; padding: 20px; border-radius: 8px; position: relative; max-width: 90%; width: 800px; max-height: 90%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: flex-end;">
+      <button onclick="closeModal()" style="background: #f44336; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-size: 14px; align-self: flex-end; margin-bottom: 10px;">Cerrar</button>
       <div style="width: 100%; height: 400px;">
         <canvas id="modalChartCanvas" style="width:100%; height:100%;"></canvas>
       </div>
     </div>
   </div>
 
-  </div>
-
+  <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+
+  <canvas id="chartCanvas" style="max-width: 1000px; margin: 40px auto; display: none;"></canvas>
   <div class="text-right" style="position: fixed; bottom: 10px; right: 20px;">
-    <p style="font-size: 14px; color: #6c757d;"><strong>Desarrollado por Daniel Avila</strong>, Ingeniero de
-      Software</p>
+    <p style="font-size: 14px; color: #6c757d;"><strong>Desarrollado por Daniel Avila</strong>, Ingeniero de Software</p>
   </div>
 </body>
+
 
 </html>
