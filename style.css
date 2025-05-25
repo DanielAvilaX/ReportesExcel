@@ -40,11 +40,13 @@ body {
 /* Tabla */
 table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   margin-bottom: 40px;
   background: white;
   box-shadow: 0 0 10px rgb(0, 0, 0);
 }
+
 
 caption {
   caption-side: top;
@@ -76,7 +78,7 @@ tr:hover {
 
 tr:last-child {
   border-top: 2px solid #ccc;
-  background-color: #47a1fa;
+  background-color: #9ecfffa1;
   font-weight: bold;
 }
 
@@ -237,14 +239,16 @@ tr:last-child {
   color: white;
 }
 #tablesContainer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 0 20px;
+  width: 100%;
   max-width: 1200px;
+  padding: 0 10px;
+  box-sizing: border-box;
   margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
+
 
 
 .categoria-container {
@@ -273,9 +277,4 @@ tr:last-child {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-table {
-  margin-bottom: 40px;
-  width: 100%;
-  max-width: 1000px;
 }
